@@ -191,3 +191,16 @@ class DataWithProvenance:
 - 超出 Agent 权限阈值
 
 检查点呈现内容：当前状态、可选行动、推荐行动及依据、潜在风险。
+
+代码示例：
+
+```python
+def human_review_payload(state, recommended_action, risks, sources):
+    return {
+        "current_state": state,
+        "recommended_action": recommended_action,
+        "available_actions": ["approve", "reject", "request_more_evidence"],
+        "risks": risks,
+        "sources": sources,
+    }
+```

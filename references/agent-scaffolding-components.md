@@ -35,6 +35,17 @@
 | 日志与审计目录规范 | 规定什么必须记录、存哪 | 准备接真实用户前 | D9 |
 | Docker / 部署脚本 | 一键启动、环境一致 | 要给别人用或上线时 | D9 |
 
+代码示例：
+
+```text
+agent-app/
+├── agent/          # loop, policy, context, memory
+├── tools/          # schemas and executors
+├── configs/        # model, MCP, env templates
+├── tests/          # prompt, tool, safety, e2e
+└── audit/          # append-only event logs
+```
+
 ### 1.2 规则与知识脚手架
 
 | 脚手架 | 用途 | 什么时候加 | 详见 |
@@ -49,6 +60,17 @@
 - 简单快捷 → Command
 - 复杂、要隔离上下文、要限制工具 → Skill（带 `allowed-tools`）
 
+代码示例：
+
+```yaml
+---
+name: payment-agent-review
+description: Review payment Agent code for permissions, hooks, tool errors, and audit gaps.
+---
+
+Read D1, D2, D8, and D9 before reporting findings.
+```
+
 ### 1.3 开发与上线脚手架
 
 | 脚手架 | 用途 | 什么时候加 | 详见 |
@@ -57,6 +79,17 @@
 | Session 隔离规范 | 「写代码」和「Review 代码」用不同会话 | AI 生成 + Review 并存时 | D3 |
 | 测试目录（单元 / 集成 / 工具 mock） | 验证 Agent 行为可重复 | 接真实业务前 | D9 |
 | 环境变量 / 密钥管理模板 | API Key、MCP 密钥不写进代码 | 接任何外部服务时 | D2、D8 |
+
+代码示例：
+
+```yaml
+ci:
+  checks:
+    - markdown-link-check
+    - prompt-regression
+    - tool-schema-tests
+    - safety-redline-tests
+```
 
 ---
 
@@ -76,6 +109,16 @@
 | Tool Executor | 真正调用 API、查库、读写文件 | 有工具就要有 | D2、D6 |
 | Tool Result 回填 | 把工具结果正确塞回消息历史 | 有工具就要有 | D1、D2 |
 
+代码示例：
+
+```python
+messages.append({"role": "user", "content": user_input})
+response = model.complete(messages, tools=tool_schemas)
+for call in response.tool_calls:
+    result = tool_executor.call(call.name, call.args)
+    messages.append({"role": "tool", "tool_call_id": call.id, "content": result})
+```
+
 ### 2.2 第二层：可靠 Agent（内测 / 小流量）
 
 | 组件 | 用途 | 什么时候加 | 详见 |
@@ -88,6 +131,15 @@
 | Case Facts Block | 关键信息结构化保存，不被摘要冲掉 | 客服、审批、不能丢细节的场景 | D5 |
 | Scratchpad | 中间结果写文件/DB，不靠反复摘要 | 长任务、多步骤任务 | D1、D5 |
 
+代码示例：
+
+```python
+def tool_result(ok: bool, data=None, error_category=None):
+    return {"ok": ok, "data": data, "error_category": error_category}
+
+case_facts = {"order_id": "O-123", "refund_limit": 500}
+```
+
 ### 2.3 第三层：多 Agent / 复杂编排
 
 | 组件 | 用途 | 什么时候加 | 详见 |
@@ -99,6 +151,17 @@
 | Session / Fork / Resume | 继续对话或分叉实验 | 长项目、探索性任务 | D1、D3 |
 | Prompt Chaining | 步骤固定 A→B→C | 流程稳定、输入输出可预期 | D1 |
 | Dynamic Decomposition | 根据中间结果决定下一步 | 任务复杂度未知 | D1 |
+
+代码示例：
+
+```python
+task = {
+    "goal": "draft refund reply",
+    "context": {"order_id": "O-123", "policy": "refund_v4"},
+    "forbidden_context": ["full_chat_history", "other_customer_data"],
+}
+subagent_result = order_agent.run(task)
+```
 
 ### 2.4 第四层：工具与安全（接权限 / 写操作）
 
@@ -114,6 +177,15 @@
 | Prompt Injection Hardening | 外部内容用边界标记包起来 | 接网页、邮件、文档 | D7、D8 |
 | Secret Redaction | 日志和输出里不泄露 API Key | 接密钥时 | D8 |
 
+代码示例：
+
+```python
+def dispatch_tool(user, session, tool_name, args):
+    if not tool_policy.can_call(user, session, tool_name):
+        return {"ok": False, "error_category": "permission_denied"}
+    return tool_executor.call(tool_name, args)
+```
+
 ### 2.5 第五层：Memory / Context 引擎
 
 | 组件 | 用途 | 什么时候加 | 详见 |
@@ -124,6 +196,14 @@
 | Memory Manager 生命周期 | session 切换、压缩、委派时同步 memory | 有 memory 就要有 | D6 |
 | Provenance（信息溯源） | 记忆/检索带来源、时间、置信度 | 需要可追溯、可审计 | D5 |
 | RAG / Search 服务 | 从知识库检索再回答 | 领域知识超出模型训练数据 | D5、D7 |
+
+代码示例：
+
+```python
+memory_context = wrap_untrusted("memory", memory_provider.prefetch(user_id))
+messages = context_engine.with_case_facts(messages, case_facts)
+messages.append({"role": "system", "content": memory_context})
+```
 
 ### 2.6 第六层：MCP 与扩展
 
@@ -136,6 +216,14 @@
 
 **MCP**（Model Context Protocol）：标准协议，让 Agent 像插 USB 一样接外部工具服务。
 
+代码示例：
+
+```python
+for tool in mcp_manager.render_tool_schema("github"):
+    if tool["read_only"] or user.is_admin:
+        visible_tools.append(tool)
+```
+
 ### 2.7 第七层：Skill 与学习（Hermes 风格）
 
 | 组件 | 用途 | 什么时候加 | 详见 |
@@ -145,6 +233,13 @@
 | Skill 文本不可信处理 | 外部 skill 也当不可信输入 | 允许用户/第三方上传 skill | D6、D8 |
 | Message Sanitization | 修复非法 tool call、孤儿 tool result | 生产 runtime | D6 |
 | Post-turn Hooks | 每轮结束后的持久化、审计 | 需要完整 turn 级追踪 | D6 |
+
+代码示例：
+
+```python
+skill_registry.register("agent-security-review", metadata, body)
+audit.log("skill_used", skill="agent-security-review", session_id=session.id)
+```
 
 ### 2.8 第八层：产品化 / 上线（Odysseus 风格）
 
@@ -157,6 +252,16 @@
 | Human Escalation | 超权限、政策空白、用户要求转人工 | 客服/审批类业务 | D1、D5 |
 | 回滚方案 | 出问题能退回上一版本 | 正式上线 | D9 |
 | 运维文档 / 交接清单 | 新人能接手 | 团队 > 1 人或要交接 | D9 |
+
+代码示例：
+
+```python
+ready, missing = can_launch({
+    "e2e_tests", "permission_policy", "audit_log", "rollback_plan"
+})
+assert not ready
+print("missing gates:", missing)
+```
 
 ---
 

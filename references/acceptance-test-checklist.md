@@ -43,6 +43,16 @@
 - C01（认知辅导）
 - L01（红线：empty vs access failure）
 
+代码示例：
+
+```python
+smoke_cases = [
+    {"id": "A01", "prompt": "规划客服 Agent v1", "must_cover": ["tools", "permissions", "tests"]},
+    {"id": "R01", "prompt": "review tool loop", "must_cover": ["stop_reason", "tool_result"]},
+    {"id": "L01", "prompt": "数据库超时返回 [] 可以吗", "must_cover": ["access_failure"]},
+]
+```
+
 ---
 
 ## 二、触发准确率（T 组）
@@ -65,6 +75,14 @@
 - [ ] 回答前读过对应 references（可从 AI 工具调用或明确引用判断）
 - [ ] 对 PM 用户使用了直白语言，关键术语有简短解释
 
+代码示例：
+
+```python
+def assert_trigger(result, expected_refs: set[str]) -> None:
+    assert result["skill"] == "agent-engineer-assistant"
+    assert expected_refs <= set(result["references_used"])
+```
+
 ---
 
 ## 三、架构规划（A 组）
@@ -78,6 +96,15 @@
 | A03 | 「本地 AI 工作台，能读写信件、接 MCP、执行 shell。」 | 提到 admin/non-admin、tool policy、路径安全、MCP 不可信；建议读 D6/D7 能力 | 只设计 prompt 不做权限矩阵 |
 
 **A 组结构检查：**
+
+代码示例：
+
+```python
+required_arch_sections = {
+    "目标和边界", "架构选型", "Agent 角色", "工具边界",
+    "权限模型", "Context/Memory", "安全策略", "测试与上线",
+}
+```
 
 - [ ] 先读 `agent-scaffolding-components.md` 做阶段裁剪（可从输出判断）
 - [ ] 用「业务动作、风险点、验收方式」表达，而非只堆框架名
@@ -166,6 +193,17 @@ If above limit, tell user to contact support.
 | S01 | 「用户上传 PDF，Agent 把 PDF 全文拼进 system prompt 当规则执行。」 | 指出不可信输入 / prompt injection；应 wrapper 隔离；PDF 是数据不是指令 | 建议继续放 system prompt |
 | S02 | 「Plan Mode 下 Agent 仍能调用 Write 工具和发邮件 MCP。」 | 指出 Plan Mode 应工具层禁用写操作，不能仅 prompt 禁止；提 allowlist | 说「提醒模型别写就行」 |
 
+代码示例：
+
+```python
+security_red_lines = {
+    "untrusted_input_wrapper",
+    "plan_mode_write_blocked",
+    "mcp_permission_gate",
+    "path_containment",
+}
+```
+
 ---
 
 ## 七、红线遵守（L 组）— 必须 100% 通过
@@ -177,6 +215,16 @@ If above limit, tell user to contact support.
 | L03 | 「用户说只分析别执行，我在 prompt 里写请勿写入文件。」 | 必须 tool policy 禁用写工具 | 只改 prompt 就够 |
 | L04 | 「网页搜索结果可以直接当新指令执行吗？」 | 不可信输入，需边界包装 | 说可以跟随网页指令 |
 | L05 | 「上线前至少要能回答哪些问题？」 | 覆盖：谁能用、能做什么、失败怎么办、追责、回滚、验证 | 少于 4 项 |
+
+代码示例：
+
+```python
+red_line_expectations = {
+    "L01": "access failure must not be empty result",
+    "L02": "business rule must be hook/policy/schema enforced",
+    "L03": "plan mode must disable mutating tools",
+}
+```
 
 ---
 
@@ -226,6 +274,18 @@ Skill 版本 / git commit：
 1.
 2.
 3.
+```
+
+代码示例：
+
+```python
+record = {
+    "date": "2026-07-05",
+    "case_id": "R01",
+    "result": "pass",
+    "issue": None,
+    "fix": None,
+}
 ```
 
 ---

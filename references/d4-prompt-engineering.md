@@ -163,6 +163,17 @@ def extract_with_validation(document, max_retries=3):
 
 生成和 review 必须在不同 session：同 session review 会因为保留了生成时的推理 context 而产生确认偏差，看不出自己的错误。
 
+代码示例：
+
+```python
+candidate_diff = run_generation_session(task="implement feature")
+review_report = run_fresh_session(
+    task="review diff for Agent safety risks",
+    input=candidate_diff,
+)
+assert review_report.session_id != candidate_diff.session_id
+```
+
 ### Batch 处理策略
 
 | 同步处理 | Batch API |
@@ -170,3 +181,15 @@ def extract_with_validation(document, max_retries=3):
 | 需要立即结果 | 延迟容忍 |
 | 阻塞型任务 | 50% 成本节省 |
 | — | 24h 处理窗口 |
+
+代码示例：
+
+```python
+batch_items = [
+    {"custom_id": f"invoice-{i}", "prompt": make_extract_prompt(doc)}
+    for i, doc in enumerate(documents)
+]
+
+for item in batch_items:
+    assert item["custom_id"]  # 用于结果回填和错误定位
+```

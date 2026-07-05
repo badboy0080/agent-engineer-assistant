@@ -238,3 +238,16 @@ Adapt your approach based on what you find.
 长 session 中，早期获取的数据可能已过时。缓解方法：
 - 定期重新获取关键数据
 - 使用 scratchpad 文件存储中间状态
+
+代码示例：
+
+```python
+from datetime import datetime, timedelta
+
+def should_refresh_fact(fact):
+    return datetime.utcnow() - fact["retrieved_at"] > timedelta(minutes=15)
+
+case_fact = {"order_status": "pending", "retrieved_at": datetime.utcnow()}
+if should_refresh_fact(case_fact):
+    case_fact = lookup_order_status(order_id)
+```

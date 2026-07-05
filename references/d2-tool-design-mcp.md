@@ -194,7 +194,7 @@ tool_choice={"type": "tool", "name": "extract_invoice"}
   "mcpServers": {
     "jira": {
       "env": {
-        "JIRA_TOKEN": "sk-abc123-actual-secret-key"
+        "JIRA_TOKEN": "PASTE_REAL_TOKEN_HERE"
       }
     }
   }
