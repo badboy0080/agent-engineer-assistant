@@ -10,6 +10,8 @@
 
 详细规范仍读对应 Domain 文件；本文件不重复展开实现细节。
 
+如果用户问“我要做 Agent，应该用什么框架/脚手架”，先读 `references/agent-scaffolding-patterns.md`。本文件回答“组件何时添加”，`agent-scaffolding-patterns.md` 回答“架构范式怎么选”。
+
 ---
 
 ## 概念区分
@@ -18,6 +20,38 @@
 | --- | --- | --- |
 | **脚手架（Scaffolding）** | 项目骨架：目录、配置入口、规则文档、部署脚本 | 盖楼前的图纸和施工规范 |
 | **组件（Components）** | 运行时模块：loop、工具执行、权限、memory 等 | 楼里的水电、门禁、消防系统 |
+
+---
+
+## 快速选型：按需求难易程度推荐
+
+| 用户需求信号 | 推荐脚手架 | 推荐框架 | v1 最小组件 |
+| --- | --- | --- | --- |
+| 简单聊天、问答、1-2 个工具 | Perceive-Reason-Act / 最小 ReAct | Responses API / OpenAI Agents SDK | Loop、System Prompt、Tool Schema |
+| 需要搜索、工具调用、边做边看结果 | ReAct | OpenAI Agents SDK / LangGraph 简化图 | Loop、Tool Executor、Iteration Budget |
+| 长任务、先拆解再执行 | Plan & Execute | OpenAI Agents SDK sessions / LangGraph | Planner、Executor、Scratchpad、测试 |
+| 固定业务流程、审批、失败回退 | State Machine / LangGraph | LangGraph | 状态、条件边、Human Review、审计 |
+| 客服/中台多能力入口 | Router Agent | OpenAI Agents SDK handoffs / LangGraph | Intent Router、Subagent、权限矩阵 |
+| 多角色研究/编码/评审/写作 | Orchestrator-Workers / Role-Based | OpenAI Agents SDK / AutoGen / CrewAI | Coordinator、角色 Agent、结构化上报 |
+| 复杂方案评审和决策 | Multi-Agent Debate | AutoGen / 自研编排 | 多评审 Agent、Judge、轮次预算 |
+| 无中心自治探索 | Swarm Agent | AutoGen Core / 自研 runtime | Blackboard、预算、冲突解决；默认不用于商用 v1 |
+
+代码示例：
+
+```python
+def recommend_scaffold(req: dict) -> dict:
+    if req.get("fixed_workflow"):
+        return {"pattern": "State Machine / LangGraph", "framework": "LangGraph"}
+    if req.get("many_capabilities"):
+        return {"pattern": "Router Agent", "framework": "OpenAI Agents SDK handoffs"}
+    if req.get("roles"):
+        return {"pattern": "Role-Based Multi-Agent", "framework": "AutoGen / CrewAI"}
+    if req.get("long_task"):
+        return {"pattern": "Plan & Execute", "framework": "OpenAI Agents SDK / LangGraph"}
+    if req.get("needs_tools"):
+        return {"pattern": "ReAct", "framework": "OpenAI Agents SDK"}
+    return {"pattern": "Perceive-Reason-Act", "framework": "Responses API"}
+```
 
 ---
 
@@ -274,6 +308,15 @@ print("missing gates:", missing)
 | **小流量** | Tool Policy、Plan Mode、Hooks、路径安全 | 能写文件、发邮件、花钱 |
 | **生产** | 权限矩阵、审计、观测、回滚、测试 | 多用户、要追责、要 SLA |
 
+架构范式裁剪：
+
+| 阶段 | 推荐范式 |
+| --- | --- |
+| PoC | Perceive-Reason-Act、最小 ReAct |
+| 内测 | ReAct、Plan & Execute、三层记忆 |
+| 小流量 | Router Agent、State Machine、工具插件化、Self-Reflection |
+| 生产 | LangGraph、Orchestrator-Workers、Role-Based、Observability |
+
 阶段推进路径：
 
 ```
@@ -339,6 +382,7 @@ PoC → 内测 → 小流量 → 生产
 | 问题类型 | 先读本索引章节 | 再读 Domain |
 | --- | --- | --- |
 | loop、多 Agent、Hook | 二.1–二.3 | D1 |
+| 架构范式、框架选型 | 快速选型 | `agent-scaffolding-patterns.md` |
 | 工具、MCP、错误返回 | 二.1、二.4、二.6 | D2 |
 | CLAUDE.md、Skill、Plan Mode | 一.2 | D3 |
 | Prompt、结构化输出 | 二.1 | D4 |

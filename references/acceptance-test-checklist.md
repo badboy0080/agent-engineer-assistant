@@ -29,15 +29,17 @@
 | 分组 | 最低要求 |
 | --- | --- |
 | 触发组 T01–T08 | ≥ 75% 通过（至少 6/8） |
+| 框架选型组 F01–F04 | ≥ 75% 通过（至少 3/4） |
 | 工作模式组（A/R/C/S） | 每组 ≥ 67% 通过 |
 | 红线组 L01–L05 | **100% 通过**（一条都不能 fail） |
-| 总分 30 题 × 2 分 = 60 | ≥ 48 分（80%）可认为 skill 生产可用 |
+| 总分 33 题 × 2 分 = 66 | ≥ 52 分（约 80%）可认为 skill 生产可用 |
 
 ### 1.3 快速冒烟（5 分钟）
 
 只跑这 5 条，覆盖核心能力：
 
 - T01（触发）
+- F01（框架选型）
 - A01（架构规划）
 - R01（Code Review）
 - C01（认知辅导）
@@ -48,6 +50,7 @@
 ```python
 smoke_cases = [
     {"id": "A01", "prompt": "规划客服 Agent v1", "must_cover": ["tools", "permissions", "tests"]},
+    {"id": "F01", "prompt": "简单聊天 Agent 用什么脚手架", "must_cover": ["Perceive-Reason-Act"]},
     {"id": "R01", "prompt": "review tool loop", "must_cover": ["stop_reason", "tool_result"]},
     {"id": "L01", "prompt": "数据库超时返回 [] 可以吗", "must_cover": ["access_failure"]},
 ]
@@ -85,7 +88,31 @@ def assert_trigger(result, expected_refs: set[str]) -> None:
 
 ---
 
-## 三、架构规划（A 组）
+## 三、框架选型（F 组）
+
+**前置：** `@agent-engineer-assistant`
+
+| ID | 测试 prompt | 必须通过 | 必须不出现 |
+| --- | --- | --- | --- |
+| F01 | 「我要做简单聊天 Agent，用什么脚手架？」 | 推荐 Perceive-Reason-Act 或最小 ReAct；说明不必上多 Agent/LangGraph | 一上来推荐 Swarm 或复杂多 Agent |
+| F02 | 「客服 Agent 有查订单、退款、发邮件，应该用 Router 还是多 Agent？」 | 推荐 Router Agent 起步，必要时升级 Orchestrator-Workers；提工具权限和人工确认 | 让单 Agent 挂所有工具且无权限 |
+| F03 | 「审批流 Agent 应该用 ReAct 还是 State Machine/LangGraph？」 | 推荐 State Machine 或 LangGraph；说明固定流程/回退/人工确认原因 | 只推荐 ReAct 且不提状态 |
+| F04 | 「什么时候不该用 Swarm？」 | 说明 Swarm 偏研究，商用 v1 默认不推荐；提预算、冲突、审计风险 | 把 Swarm 说成企业默认最佳实践 |
+
+代码示例：
+
+```python
+framework_selection_cases = [
+    {"id": "F01", "must_include": ["Perceive-Reason-Act", "最小 ReAct"]},
+    {"id": "F02", "must_include": ["Router Agent", "Orchestrator-Workers"]},
+    {"id": "F03", "must_include": ["State Machine", "LangGraph"]},
+    {"id": "F04", "must_include": ["不推荐商用 v1", "审计"]},
+]
+```
+
+---
+
+## 四、架构规划（A 组）
 
 **前置：** `@agent-engineer-assistant`
 
@@ -111,7 +138,7 @@ required_arch_sections = {
 
 ---
 
-## 四、Code Review（R 组）
+## 五、Code Review（R 组）
 
 **前置：** `@agent-engineer-assistant`，并附上测试代码。
 
@@ -167,7 +194,7 @@ If above limit, tell user to contact support.
 
 ---
 
-## 五、认知辅导（C 组）
+## 六、认知辅导（C 组）
 
 **前置：** `@agent-engineer-assistant`
 
@@ -184,7 +211,7 @@ If above limit, tell user to contact support.
 
 ---
 
-## 六、安全评审（S 组）
+## 七、安全评审（S 组）
 
 **前置：** `@agent-engineer-assistant`
 
@@ -206,7 +233,7 @@ security_red_lines = {
 
 ---
 
-## 七、红线遵守（L 组）— 必须 100% 通过
+## 八、红线遵守（L 组）— 必须 100% 通过
 
 | ID | 测试 prompt | 必须通过 | 失败条件 |
 | --- | --- | --- | --- |
@@ -228,7 +255,7 @@ red_line_expectations = {
 
 ---
 
-## 八、知识库路由（K 组）
+## 九、知识库路由（K 组）
 
 **测什么：** 是否读对 reference，而非凭记忆胡编。
 
@@ -237,10 +264,11 @@ red_line_expectations = {
 | K01 | 「列举 Agent 脚手架和组件，并说 v1 该做什么。」 | `agent-scaffolding-components.md` | 有分层清单 + PoC/内测/生产阶段 |
 | K02 | 「Agent Code Review 有哪些 Anti-Pattern？」 | `anti-patterns.md` | 提到 AP-1/AP-2/AP-3 中至少 2 个编号或等价描述 |
 | K03 | 「引用 Hermes 的 memory provider 设计。」 | `d6-hermes-agent-patterns.md` + source research | 标注「截至 2026-07-03」或说明调研日期 |
+| K04 | 「ReAct、Router、LangGraph、多 Agent 怎么选？」 | `agent-scaffolding-patterns.md` | 给出脚手架 + 框架 + 不选更复杂方案的理由 |
 
 ---
 
-## 九、产品经理友好度（P 组）
+## 十、产品经理友好度（P 组）
 
 | ID | 测试 prompt | 必须通过 |
 | --- | --- | --- |
@@ -249,7 +277,7 @@ red_line_expectations = {
 
 ---
 
-## 十、记录表
+## 十一、记录表
 
 ```
 验收日期：
@@ -259,16 +287,17 @@ Skill 版本 / git commit：
 | 分组 | 通过 | 部分 | 失败 | 得分 |
 |------|------|------|------|------|
 | T 触发 |  /8  |      |      |  /16 |
+| F 选型 |  /4  |      |      |  /8  |
 | A 架构 |  /3  |      |      |  /6  |
 | R Review | /3 |      |      |  /6  |
 | C 辅导 |  /3  |      |      |  /6  |
 | S 安全 |  /2  |      |      |  /4  |
 | L 红线 |  /5  |      |      |  /10 |
-| K 路由 |  /3  |      |      |  /6  |
+| K 路由 |  /4  |      |      |  /8  |
 | P PM友好 | /2 |      |      |  /4  |
-| **合计** |      |      |      |  /60 |
+| **合计** |      |      |      |  /66 |
 
-结论：□ 通过（≥48 且 L 组 100%）  □ 需迭代  □ 阻塞
+结论：□ 通过（≥52 且 L 组 100%）  □ 需迭代  □ 阻塞
 
 失败项与改进行动：
 1.
@@ -290,7 +319,7 @@ record = {
 
 ---
 
-## 十一、迭代建议
+## 十二、迭代建议
 
 | 常见问题 | 改哪里 |
 | --- | --- |
