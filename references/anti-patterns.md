@@ -125,3 +125,33 @@ Plan Mode 有额外开销，简单、定义清晰的任务应直接执行。
 ### AP-20 fork_session 和 --resume 混淆使用 [D1]
 - `--resume`：继续工作，需要完整历史
 - `fork_session`：探索实验，不影响主 session
+
+### AP-21 不可信输入直接进入 system prompt [D8]
+网页、邮件、RAG 文档、工具输出、长期记忆、skill 文本都可能包含 prompt injection。必须用明确边界包装为“数据”，不能拼进 system prompt 当作指令。
+
+### AP-22 Plan Mode 只靠 prompt 禁止写操作 [D7/D8]
+Plan Mode 或“只分析不执行”时，必须在工具策略层禁用写文件、发邮件、执行 shell、调用 mutating MCP 等工具。只在 prompt 里写“不要执行”不可靠。
+
+### AP-23 MCP schema 未做截断和清洗 [D7/D8]
+第三方 MCP server 的工具名、参数名、描述都属于外部输入。渲染到 prompt 前应限制参数数量、字段长度和总长度，并清洗异常 token，避免 prompt 污染和上下文膨胀。
+
+### AP-24 工具失败后静默结束 [D6/D9]
+工具 timeout、权限失败、not found、schema 错误后，Agent 不能直接沉默或假装完成。必须说明失败类型，并选择修正参数、重试、降级或请求人工处理。
+
+### AP-25 把 shell 当万能工具 [D7/D8]
+能用专用 read/search/edit/list 工具时，不应用 shell、Python、curl、requests 绕过工具边界。shell 通常权限更大、审计更弱、路径风险更高。
+
+### AP-26 文件工具缺少 allowlist / denylist / workspace containment [D7/D8]
+文件读写工具必须先解析真实路径，再检查敏感路径 denylist 和允许根目录。禁止让模型控制的路径直接读写 `.ssh`、`.gnupg`、env、token、shell rc 等敏感文件。
+
+### AP-27 admin 工具未按 owner/session 校验 [D7/D8]
+即使后端有 admin 路由，Agent 工具分发层也必须校验当前 session owner 是否有权限。不能因为是“内部 loopback”就让非 admin 用户间接调用 admin 工具。
+
+### AP-28 memory 写入没有成功门禁和来源记录 [D6/D8]
+长期记忆写入必须确认真实提交成功，不能把 staged、失败或不可解析结果同步给外部 provider。写入应带 session、tool、agent、source 等 provenance。
+
+### AP-29 context 压缩没有保护关键事实 [D5/D6]
+压缩前必须保护 Case Facts、任务目标、权限边界、未完成事项和失败记录。只做自然语言摘要容易丢失订单号、金额、用户权限等关键事实。
+
+### AP-30 上线前没有产品化验收清单 [D9]
+没有测试矩阵、权限矩阵、日志审计、错误处理、回滚方案和人工升级流程的 Agent，只能算 demo，不能算生产系统。
